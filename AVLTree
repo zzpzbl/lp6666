@@ -1,0 +1,284 @@
+#include <iostream>
+#include <cstring>
+#include <cstdio>
+using namespace std;
+
+// 数据类
+class Record {
+    private:
+        string other;
+        string key;
+    public:
+        Record();
+        Record(string &a, string &b);
+        string the_key() const;
+        string the_other() const;
+};
+
+Record::Record() {
+    key = "";
+    other = "";
+}
+
+Record::Record(string &a, string &b) {
+    key = a;
+    other = b;
+}
+
+string Record::the_key() const {
+    return key;
+}
+
+string Record::the_other() const {
+    return other;
+}
+
+bool operator == (const Record &x, const Record &y) {
+    return x.the_key() == y.the_key();
+}
+
+bool operator > (const Record &x, const Record &y) {
+    return x.the_key() > y.the_key();
+}
+
+bool operator < (const Record &x, const Record &y) {
+    return x.the_key() < y.the_key();
+}
+
+ostream & operator << (ostream &output, Record &x) {
+    output << x.the_key();
+    output << " ";
+    return output;
+}
+
+// 定义节点
+template<class T>
+struct AVLnode {
+    T data;
+    int height;
+    AVLnode<T> *left;
+    AVLnode<T> *right;
+    AVLnode();
+    AVLnode(const T&x);
+};
+
+template<class T>
+AVLnode<T>::AVLnode() {
+    height = 0;
+}
+
+template<class T>
+AVLnode<T>::AVLnode(const T&x) {
+    data = x;
+    left = nullptr;
+    right = nullptr;
+    height = 0;
+}
+
+// AVLTree
+template<class T>
+class AVLTree {
+    public:
+        AVLTree();
+        ~AVLTree();
+        int Treeheight(AVLnode<T> *pnode);
+        int BalanceFactor(AVLnode<T> *pnode);
+        AVLnode<T> *TreeRotateLeft(AVLnode<T> *pnode);
+        AVLnode<T> *TreeRotateRight(AVLnode<T> *pnode);
+        AVLnode<T> *TreeBalance(AVLnode<T> *&pnode);
+        AVLnode<T> *Maximum(AVLnode<T> *pnode);
+        void insert(const T&x);
+        void remove(const T&X);
+        void search(string &x);
+    private:
+        AVLnode<T> *root;
+        void destory(AVLnode<T> *&pnode);
+        AVLnode<T> *Treeinsert(AVLnode<T> *&pnode, const T&x);
+        AVLnode<T> *Treeremove(AVLnode<T> *&pnode, const T&x);
+        void Treesearch(AVLnode<T> *pnode, string &x);
+};
+
+// 找前驱
+template<class T>
+AVLnode<T> *AVLTree<T>::Maximum(AVLnode<T> *pnode) {
+    if(pnode != nullptr) {
+        while(pnode->right != nullptr) pnode = pnode->right;
+        return pnode;
+    }
+    return nullptr;
+}
+
+template<class T>
+AVLTree<T>::AVLTree() {
+    root = nullptr;
+}
+
+template<class T>
+AVLTree<T>::~AVLTree() {
+    destory(root);
+}
+
+template<class T>
+int AVLTree<T>::Treeheight(AVLnode<T> *pnode) {
+    if(pnode == nullptr)
+        return 0;
+    return max(Treeheight(pnode->left), Treeheight(pnode->right))+1;
+}
+
+template<class T>
+int AVLTree<T>::BalanceFactor(AVLnode<T> *pnode) {
+    if(pnode == nullptr)
+        return 0;
+    return Treeheight(pnode->left) - Treeheight(pnode->right);
+}
+
+template<class T>
+AVLnode<T> *AVLTree<T>::TreeRotateRight(AVLnode<T> *pnode) {
+    AVLnode<T> *pleft = pnode->left;
+    pnode->left = pleft->right;
+    pleft->right = pnode;
+    pleft->height = max(Treeheight(pleft->right), Treeheight(pleft->left))+1;
+    pnode->height = max(Treeheight(pnode->right), Treeheight(pnode->left))+1;
+    return pleft;
+}
+
+template<class T>
+AVLnode<T> *AVLTree<T>::TreeRotateLeft(AVLnode<T> *pnode) {
+    AVLnode<T> *pright = pnode->right;
+    pnode->right = pright->left;
+    pright->left = pnode;
+    pnode->height = max(Treeheight(pnode->left), Treeheight(pnode->right))+1;
+    pright->height = max(Treeheight(pright->right), Treeheight(pright->left))+1;
+    return pright;
+}
+
+// 平衡函数
+template<class T>
+AVLnode<T> *AVLTree<T>::TreeBalance(AVLnode<T> *&pnode) {
+    int factor = BalanceFactor(pnode);
+    if(factor > 1 && BalanceFactor(pnode->left) > 0) //LL
+        return pnode = TreeRotateRight(pnode);
+    else if(factor > 1 && BalanceFactor(pnode->left) <= 0) {//LR
+        pnode->left = TreeRotateLeft(pnode->left);
+        return pnode = TreeRotateRight(pnode);
+    }
+    else if(factor < -1 && BalanceFactor(pnode->right) <= 0) //RR
+        return pnode = TreeRotateLeft(pnode);
+    else if(factor < -1 && BalanceFactor(pnode->right) > 0) {//RL
+        pnode->right = TreeRotateRight(pnode->right);
+        return pnode = TreeRotateLeft(pnode);
+    }
+    if(pnode) pnode->height = max(Treeheight(pnode->left), Treeheight(pnode->right))+1;
+    return pnode;
+}
+
+// 插入
+template<class T>
+AVLnode<T> *AVLTree<T>::Treeinsert(AVLnode<T> *&pnode, const T&x) {
+    AVLnode<T> *newnode;
+    if(pnode == nullptr) {
+        newnode = new AVLnode<T>(x);
+        pnode = newnode;
+    }
+    else if(pnode->data < x)
+        pnode->right = Treeinsert(pnode->right, x);
+    else if(pnode->data > x)
+        pnode->left = Treeinsert(pnode->left, x);
+    return pnode = TreeBalance(pnode);
+}
+
+template<class T>
+void AVLTree<T>::insert(const T&x) {
+    Treeinsert(root, x);
+}
+
+// 删除
+template<class T>
+AVLnode<T> *AVLTree<T>::Treeremove(AVLnode<T> *&pnode, const T&x) {
+    if(pnode != nullptr) {
+        if(pnode->data == x) {
+            if(pnode->left && pnode->right) {
+                AVLnode<T> *ppre = Maximum(pnode->left);
+                pnode->data = ppre->data;
+                pnode->left = Treeremove(pnode->left, pnode->data);
+            }
+            else {
+                AVLnode<T> *tisi = pnode;
+                if(pnode->right) pnode = pnode->right;
+                else pnode = pnode->left;
+                delete tisi;
+            }
+        }
+        else {
+            if(pnode->data < x) 
+                pnode->right = Treeremove(pnode->right, x);
+            else
+                pnode->left = Treeremove(pnode->left, x);
+        }
+    }
+    return pnode = TreeBalance(pnode);
+}
+
+template<class T>
+void AVLTree<T>::remove(const T&x) {
+    Treeremove(root, x);
+}
+
+template<class T>
+void AVLTree<T>::destory(AVLnode<T> *&pnode) {
+    if(pnode != nullptr) {
+        destory(pnode->left);
+        destory(pnode->right);
+        delete pnode;
+        pnode = nullptr;
+    }
+}
+
+template<class T>
+void AVLTree<T>::search(string &x) {
+    Treesearch(root, x);
+}
+
+template<class T>
+void AVLTree<T>::Treesearch(AVLnode<T> *pnode, string &x) {
+    if(pnode != nullptr) {
+        cout << pnode->data.the_key() << ' ';
+        if(x == pnode->data.the_key()) {
+            cout << pnode->data.the_other() << endl;
+            return ;
+        }
+        if(x > pnode->data.the_key()) 
+            Treesearch(pnode->right, x);
+        else 
+            Treesearch(pnode->left, x);
+    }
+    else
+        cout << "NULL" << endl;
+}
+
+int main() {
+    AVLTree<Record> mytree;
+    int n;
+    cin >> n;
+    string a, b;
+    while(n--) {
+        cin >> a >> b;
+        Record data(a, b);
+        mytree.insert(data);
+    }
+    cin >> n;
+    while(n--) {
+        cin >> a;
+        b = "";
+        Record data(a, b);
+        mytree.remove(data);
+    }
+    n = 2;
+    while(n--) {
+        cin >> a;
+        mytree.search(a);
+    }
+
+    return 0;
+}
+
